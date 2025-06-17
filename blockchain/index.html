@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blockchain Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .block { border: 1px solid #ccc; padding: 10px; margin-bottom: 20px; max-width: 400px; }
+        button { padding: 10px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div id="block" class="block"></div>
+    <button onclick="newTransaction()">New Transaction</button>
+    <script>
+        async function loadBlock() {
+            const response = await fetch('/block/1');
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('block').innerHTML = `
+                    <h2>Block #${data.index}</h2>
+                    <p>Timestamp: ${data.timestamp}</p>
+                    <p>Previous Hash: ${data.previous_hash}</p>
+                    <p>Hash: ${data.hash}</p>
+                    <h3>Transactions</h3>
+                    ${data.transactions.map(tx => `
+                        <p>From: ${tx.from}<br>To: ${tx.to}<br>Amount: ${tx.amount}</p>
+                    `).join('')}
+                    <h3>Wallet</h3>
+                    <p>d5a0c8ad3874e58814f6ae5a8a4ab857c08f3ba</p>
+                `;
+            }
+        }
+
+        async function newTransaction() {
+            const response = await fetch('/transaction', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ from: 'user1', to: 'user2', amount: 30 })
+            });
+            if (response.ok) loadBlock();
+        }
+
+        loadBlock();
+    </script>
+</body>
+</html>
