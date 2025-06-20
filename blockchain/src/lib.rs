@@ -3,7 +3,7 @@ pub mod network;
 pub mod mining;
 
 pub use block::Block;
-pub use network::{add_transaction, get_wallet};
+pub use network::{add_transaction, get_wallet, get_history};
 
 use std::collections::HashMap;
 
@@ -35,6 +35,7 @@ pub struct Blockchain {
     pub difficulty: usize,
     pub target_block_time: u64,
     pub wallet: Wallet,
+    pub history: Vec<transaction::Transaction>, // add history transaction
 }
 
 impl Blockchain {
@@ -54,13 +55,13 @@ impl Blockchain {
             difficulty: 2,
             target_block_time: 10,
             wallet,
+            history: vec![tx], // Inisialisasi
         };
-        // Sinkronisasi awal chain
+        // Sinkronisasi
         for block in &blockchain.chain {
             for tx in &block.transactions {
                 blockchain.wallet.update_balance(&tx.sender, -tx.amount - tx.fee);
                 blockchain.wallet.update_balance(&tx.receiver, tx.amount);
-                println!("Syncing balance (new): {} -> {}, {} -> {}", tx.sender, -tx.amount - tx.fee, tx.receiver, tx.amount);
             }
         }
         blockchain
@@ -71,13 +72,13 @@ impl Blockchain {
         let mut block = Block::new(self.chain.len() as u64, transactions.clone(), previous_hash);
         crate::mining::mine_block(block.index, block.previous_hash.clone(), block.transactions.clone(), self.difficulty);
         block.calculate_hash();
-        self.chain.push(block); // Append block baru
+        self.chain.push(block);
 
-        // Sinkronisasi ulang semua transaksi di chain tanpa reset
         for block in &self.chain {
             for tx in &block.transactions {
                 self.wallet.update_balance(&tx.sender, -tx.amount - tx.fee);
                 self.wallet.update_balance(&tx.receiver, tx.amount);
+                self.history.push(tx.clone()); // add history
                 println!("Updating balance: {} -> {}, {} -> {}", tx.sender, -tx.amount - tx.fee, tx.receiver, tx.amount);
             }
         }
