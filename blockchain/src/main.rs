@@ -1,6 +1,6 @@
 use actix_web::{web, App, HttpServer, HttpResponse};
 use std::sync::{Arc, Mutex};
-use blockchain::{Blockchain, network::add_transaction, network::get_block};
+use blockchain::{Blockchain, network::add_transaction, network::get_block, network::get_wallet};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -10,6 +10,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(blockchain.clone()))
+            .service(get_wallet)
             .service(add_transaction)
             .service(get_block)
             .route("/", web::get().to(index))

@@ -25,7 +25,7 @@ pub struct BlockResponse {
 
 #[get("/block/{index}")]
 pub async fn get_block(path: web::Path<u64>, data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
-    let blockchain = data.lock().unwrap();
+    let blockchain = data.lock().unwrap_or_else(|e| panic!("Lock error: {:?}", e));
     let block_index = path.into_inner();
     if block_index < blockchain.chain.len() as u64 {
         let block = &blockchain.chain[block_index as usize];
@@ -47,7 +47,7 @@ pub async fn add_transaction(
     transaction: web::Json<TransactionRequest>,
     data: web::Data<Arc<Mutex<Blockchain>>>,
 ) -> impl Responder {
-    let mut blockchain = data.lock().unwrap();
+    let mut blockchain = data.lock().unwrap_or_else(|e| panic!("Lock error: {:?}", e));
     let mut tx = Transaction::new(
         transaction.sender.clone(),
         transaction.receiver.clone(),
@@ -56,9 +56,9 @@ pub async fn add_transaction(
         transaction.network.clone(),
         transaction.fee,
     );
-    if tx.validate().is_ok() {
-        blockchain.add_block(vec![tx.clone()]); // Tambah block
-        // Update status di transaksi yang baru ditambahkan
+    let sender_balance = blockchain.wallet.get_balance(&tx.sender);
+    if tx.validate().is_ok() && sender_balance >= tx.amount + tx.fee {
+        blockchain.add_block(vec![tx.clone()]);
         if let Some(last_block) = blockchain.chain.last_mut() {
             if let Some(last_tx) = last_block.transactions.last_mut() {
                 last_tx.status = "berhasil".to_string();
@@ -68,6 +68,17 @@ pub async fn add_transaction(
     } else {
         tx.status = "gagal".to_string();
         println!("Validation error: {:?}", tx.validate().err());
-        HttpResponse::BadRequest().body("Invalid transaction")
+        if sender_balance < tx.amount + tx.fee {
+            println!("Insufficient balance: {} < {}", sender_balance, tx.amount + tx.fee);
+        }
+        HttpResponse::BadRequest().body("Invalid transaction or insufficient balance")
     }
+}
+
+#[get("/wallet/{address}")]
+pub async fn get_wallet(path: web::Path<String>, data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
+    let blockchain = data.lock().unwrap_or_else(|e| panic!("Lock error: {:?}", e));
+    let address = path.into_inner();
+    let balance = blockchain.wallet.get_balance(&address);
+    HttpResponse::Ok().json(serde_json::json!({"address": address, "balance": balance}))
 }
