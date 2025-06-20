@@ -1,19 +1,11 @@
-use serde::{Serialize, Deserialize};
-
 pub mod block;
 pub mod network;
+pub mod mining;
 
-pub use block::Block; // Export Block dari modul block
-pub use network::start_server; // Export start_server dari modul network
+pub use block::Block;
+pub use network::add_transaction;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Transaction {
-    pub from: String,
-    pub to: String,
-    pub amount: u64,
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Blockchain {
     pub chain: Vec<Block>,
     pub difficulty: usize,
@@ -22,21 +14,27 @@ pub struct Blockchain {
 
 impl Blockchain {
     pub fn new() -> Self {
-        let genesis = Block::new(0, vec![Transaction {
-            from: "genesis".to_string(),
-            to: "genesis".to_string(),
-            amount: 0,
-        }], String::from("0"));
+        let tx = transaction::Transaction::new(
+            "genesis".to_string(),
+            "genesis".to_string(),
+            0.0,
+            "0USD".to_string(),
+            "BTC".to_string(), // Network default
+            0.0,
+        );
+        let genesis = Block::new(0, vec![tx], String::from("0"));
         Blockchain {
             chain: vec![genesis],
-            difficulty: 4,
+            difficulty: 2,
             target_block_time: 10,
         }
     }
 
-    pub fn add_block(&mut self, transactions: Vec<Transaction>) {
+    pub fn add_block(&mut self, transactions: Vec<transaction::Transaction>) {
         let previous_hash = self.chain.last().unwrap().hash.clone();
-        let block = Block::new(self.chain.len() as u64, transactions, previous_hash);
+        let mut block = Block::new(self.chain.len() as u64, transactions, previous_hash);
+        crate::mining::mine_block(block.index, block.previous_hash.clone(), block.transactions.clone(), self.difficulty);
+        block.calculate_hash();
         self.chain.push(block);
     }
 

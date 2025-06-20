@@ -14,9 +14,9 @@ impl Transaction {
     }
 
     pub fn validate(&self) -> Result<(), String> {
-        if self.amount == 0 {
-            return Err("Amount cannot be zero".to_string());
-        }
-        Ok(())
+    if self.amount == 0 {
+        return Err("Amount cannot be zero".to_string());
     }
+    Ok(())
+        }
 }

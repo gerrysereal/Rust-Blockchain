@@ -1,30 +1,34 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
-use serde::{Serialize, Deserialize};
-use crate::Transaction;
+use actix_web::{get, post, web, HttpResponse, Responder};
+use std::sync::{Arc, Mutex};
 use crate::Blockchain;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct BlockResponse {
-    index: u64,
-    timestamp: u64,
-    previous_hash: String,
-    hash: String,
-    transactions: Vec<Transaction>,
-}
+use transaction::Transaction;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
-struct TransactionRequest {
-    from: String,
-    to: String,
-    amount: u64,
+pub struct TransactionRequest {
+    pub sender: String,
+    pub receiver: String,
+    pub amount: f64,
+    pub peg_value: String,
+    pub network: String,
+    pub fee: f64,
+}
+
+#[derive(Serialize)]
+pub struct BlockResponse {
+    pub index: u64,
+    pub timestamp: u64,
+    pub previous_hash: String,
+    pub hash: String,
+    pub transactions: Vec<Transaction>,
 }
 
 #[get("/block/{index}")]
-async fn get_block(path: web::Path<u64>) -> impl Responder {
-    let bc = Blockchain::new();
+pub async fn get_block(path: web::Path<u64>, data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
+    let blockchain = data.lock().unwrap();
     let block_index = path.into_inner();
-    if block_index < bc.chain.len() as u64 {
-        let block = &bc.chain[block_index as usize];
+    if block_index < blockchain.chain.len() as u64 {
+        let block = &blockchain.chain[block_index as usize];
         let response = BlockResponse {
             index: block.index,
             timestamp: block.timestamp,
@@ -39,34 +43,31 @@ async fn get_block(path: web::Path<u64>) -> impl Responder {
 }
 
 #[post("/transaction")]
-async fn add_transaction(transaction: web::Json<TransactionRequest>) -> impl Responder {
-    let mut bc = Blockchain::new();
-    let tx = Transaction {
-        from: transaction.from.clone(),
-        to: transaction.to.clone(),
-        amount: transaction.amount,
-    };
-    bc.add_block(vec![tx]);
-    HttpResponse::Ok().body("Transaction added")
-}
-
-#[get("/")]
-async fn index() -> impl Responder {
-    HttpResponse::Ok()
-        .content_type("text/html")
-        .body(include_str!("../index.html"))
-}
-
-#[actix_web::main]
-pub async fn start_server() -> std::io::Result<()> {
-    println!("Starting Actix Web server on http://localhost:8080...");
-    HttpServer::new(|| {
-        App::new()
-            .service(index)
-            .service(get_block)
-            .service(add_transaction)
-    })
-    .bind(("127.0.0.1", 8080))?
-    .run()
-    .await
+pub async fn add_transaction(
+    transaction: web::Json<TransactionRequest>,
+    data: web::Data<Arc<Mutex<Blockchain>>>,
+) -> impl Responder {
+    let mut blockchain = data.lock().unwrap();
+    let mut tx = Transaction::new(
+        transaction.sender.clone(),
+        transaction.receiver.clone(),
+        transaction.amount,
+        transaction.peg_value.clone(),
+        transaction.network.clone(),
+        transaction.fee,
+    );
+    if tx.validate().is_ok() {
+        blockchain.add_block(vec![tx.clone()]); // Tambah block
+        // Update status di transaksi yang baru ditambahkan
+        if let Some(last_block) = blockchain.chain.last_mut() {
+            if let Some(last_tx) = last_block.transactions.last_mut() {
+                last_tx.status = "berhasil".to_string();
+            }
+        }
+        HttpResponse::Ok().body("Transaction added")
+    } else {
+        tx.status = "gagal".to_string();
+        println!("Validation error: {:?}", tx.validate().err());
+        HttpResponse::BadRequest().body("Invalid transaction")
+    }
 }
