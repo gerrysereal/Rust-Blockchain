@@ -82,3 +82,11 @@ pub async fn get_wallet(path: web::Path<String>, data: web::Data<Arc<Mutex<Block
     let balance = blockchain.wallet.get_balance(&address);
     HttpResponse::Ok().json(serde_json::json!({"address": address, "balance": balance}))
 }
+
+#[get("/history/{address}")]
+pub async fn get_history(path: web::Path<String>, data: web::Data<Arc<Mutex<Blockchain>>>) -> impl Responder {
+    let blockchain = data.lock().unwrap_or_else(|e| panic!("Lock error: {:?}", e));
+    let address = path.into_inner();
+    let history = blockchain.history.iter().filter(|tx| tx.sender == address || tx.receiver == address).cloned().collect::<Vec<_>>();
+    HttpResponse::Ok().json(history)
+}
