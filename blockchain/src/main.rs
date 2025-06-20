@@ -1,6 +1,6 @@
 use actix_web::{web, App, HttpServer, HttpResponse};
 use std::sync::{Arc, Mutex};
-use blockchain::{Blockchain, network::add_transaction, network::get_block, network::get_wallet};
+use blockchain::{Blockchain, network::add_transaction, network::get_wallet, network::get_history}; // Pastiin ini ada
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -10,9 +10,9 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(blockchain.clone()))
-            .service(get_wallet)
             .service(add_transaction)
-            .service(get_block)
+            .service(get_wallet)
+            .service(get_history) // add history
             .route("/", web::get().to(index))
     })
     .bind(("127.0.0.1", 8080))?
