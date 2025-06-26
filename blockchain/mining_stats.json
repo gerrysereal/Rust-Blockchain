@@ -1,0 +1,11 @@
+[
+  {
+    "block_index": 0,
+    "timestamp": 1750927969,
+    "nonce": 2000078,
+    "hash": "0015be37377d9b4a687bddb481e2c6e2a45fe997b095d3dba08e6752418f82c8",
+    "mining_time_sec": 0,
+    "difficulty": 2,
+    "estimated_hashrate": null
+  }
+]

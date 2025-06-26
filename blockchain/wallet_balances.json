@@ -1,0 +1,34 @@
+{
+  "danu": {
+    "BNB": 500.0
+  },
+  "khoirul": {
+    "SOL": 10.1
+  },
+  "miner_address": {
+    "SOL": 100.2,
+    "BNB": 50.0005
+  },
+  "genesis": {
+    "SOL": 100.0
+  },
+  "fuad": {
+    "BNB": 98.0
+  },
+  "sadik": {
+    "SOL": 18.6519
+  },
+  "network": {
+    "BNB": -52.0005,
+    "SOL": -50.2
+  },
+  "favian": {
+    "SOL": 13.65
+  },
+  "mas danu": {
+    "SOL": 300.0
+  },
+  "mas fuad": {
+    "SOL": 11.0
+  }
+}

@@ -5,7 +5,7 @@ async fn test_blockchain_add() {
     let mut bc = Blockchain::new();
     let tx = "TestTx".to_string();
     bc.add_block(vec![tx.clone()]);
-    assert_eq!(bc.chain.len(), 2); // Genesis + 1 block
+    assert_eq!(bc.chain.len(), 2);
     println!("Test block added: {:?}", bc.chain.last().unwrap());
 }
 
